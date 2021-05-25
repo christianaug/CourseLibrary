@@ -10,6 +10,8 @@ namespace CourseLibrary.API.Profiles
 		{
 			//create a mapping between the dto and entity
 			CreateMap<Entities.Course, Models.CourseDto>();
+
+			CreateMap<Models.CourseForCreationDto, Entities.Course>();
 		}
 	}
 }
