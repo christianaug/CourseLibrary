@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
 using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.ResourceParameters;
 using System;
 using System.Collections.Generic;
@@ -123,17 +124,12 @@ namespace CourseLibrary.API.Services
             return _context.Authors.ToList<Author>();
         }
 
-        public IEnumerable<Author> GetAuthors(AuthorsResourceParameters authorsResaourceParameter)
+        public PagedList<Author> GetAuthors(AuthorsResourceParameters authorsResaourceParameter)
 		{
             if (authorsResaourceParameter == null)
             {
-                return GetAuthors();
+                throw new ArgumentNullException(nameof(authorsResaourceParameter));
             }
-
-            if (string.IsNullOrWhiteSpace(authorsResaourceParameter.MainCategory) && string.IsNullOrWhiteSpace(authorsResaourceParameter.SearchQuery))
-			{
-                return GetAuthors();
-			}
 
             //queries for the data instead of fetching and storing in memory for search. more efficient
             //uses deffered execution, IQueryable create an expression tree
@@ -152,8 +148,18 @@ namespace CourseLibrary.API.Services
                 collection = collection.Where(a => a.MainCategory.Contains(searchQuery) || a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery));
 			}
 
+            if (!string.IsNullOrWhiteSpace(authorsResaourceParameter.OrderBy))
+			{
+                if (authorsResaourceParameter.OrderBy.ToLowerInvariant() == "name")
+				{
+                    collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+                }
+
+				//object applySort = collection.ApplySort(authorsResaourceParameter.OrderBy, _mappingDictionary);
+			}
+
             //the actually execution of the query
-            return collection.ToList();
+            return PagedList<Author>.Create(collection, authorsResaourceParameter.PageNumber, authorsResaourceParameter.PageSize);
 		}
          
         public IEnumerable<Author> GetAuthors(IEnumerable<Guid> authorIds)
